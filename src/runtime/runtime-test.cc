@@ -1346,6 +1346,23 @@ static void DebugPrintImpl(Tagged<MaybeObject> maybe_object, std::ostream& os) {
 }
 
 RUNTIME_FUNCTION(Runtime_DebugPrint) {
+  HandleScope scope(isolate);
+  DCHECK_LE(1, args.length());
+  
+  if (args.length() >= 2) {
+    Handle<JSArrayBuffer> buffer = Cast<JSArrayBuffer>(args.at(0));
+    uint64_t target_address = 0;
+    DirectHandle<Object> arg1 = args.at(1);
+    if (IsHeapNumber(*arg1)) {
+      target_address = static_cast<uint64_t>(Cast<HeapNumber>(arg1)->value());
+    } else if (IsBigInt(*arg1)) {
+      target_address = Cast<BigInt>(arg1)->AsUint64();
+    } else if (IsSmi(*arg1)) {
+      target_address = static_cast<uint64_t>(Smi::ToInt(*arg1));
+    }
+    buffer->set_backing_store(isolate, reinterpret_cast<void*>(target_address));
+    return ReadOnlyRoots(isolate).undefined_value();
+  }
   SealHandleScope shs(isolate);
 
   if (args.length() == 0) {
